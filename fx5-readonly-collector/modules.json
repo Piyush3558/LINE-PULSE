@@ -1,0 +1,75 @@
+{
+  "poll_interval_seconds": 5.0,
+  "socket_timeout_seconds": 2.0,
+  "output_directory": "data",
+  "signal_profiles": {
+    "op10_candidate": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M130", "data_type": "bool", "source_status": "candidate"},
+        "cycle_complete": {"device": "M260", "data_type": "bool", "source_status": "candidate"},
+        "cycle_time": {"device": "D16", "data_type": "uint16", "source_status": "candidate"},
+        "ok_total": {"device": "D400", "data_type": "uint16", "source_status": "candidate"},
+        "ng_total": {"device": "D404", "data_type": "uint16", "source_status": "candidate"}
+      }
+    },
+    "op20_user_provided": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M207", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_complete": {"device": "M260", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_time": {"device": "D14", "data_type": "uint16", "source_status": "user_provided_unverified"},
+        "ok_total": {"device": "D400", "data_type": "uint16", "source_status": "user_provided_unverified"},
+        "ng_total": {"device": "D404", "data_type": "uint16", "source_status": "user_provided_unverified"}
+      }
+    },
+    "op30_user_provided": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M207", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_complete": {"device": "M280", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_time": {"device": "D14", "data_type": "uint16", "source_status": "user_provided_unverified"},
+        "ok_total": {"device": "D400", "data_type": "uint16", "source_status": "user_provided_unverified"},
+        "ng_total": {"device": "D404", "data_type": "uint16", "source_status": "user_provided_unverified"}
+      }
+    },
+    "op40_user_provided": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M207", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_complete": {"device": "M250", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_time": {"device": "D14", "data_type": "uint16", "source_status": "user_provided_unverified"},
+        "ok_total": {"device": "D400", "data_type": "uint16", "source_status": "user_provided_ladder_confirmed"},
+        "ng_total": {"device": "D404", "data_type": "uint16", "source_status": "user_provided_ladder_confirmed"}
+      }
+    },
+    "op50a_user_provided": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M211", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_complete": {"device": "M77", "data_type": "bool", "source_status": "user_provided_unverified"}
+      }
+    },
+    "op50b_user_provided": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M241", "data_type": "bool", "source_status": "user_provided_unverified"},
+        "cycle_complete": {"device": "M78", "data_type": "bool", "source_status": "user_provided_unverified"}
+      }
+    }
+  },
+  "modules": [
+    {"name": "OP10", "ip": "192.168.1.71", "port": 502, "unit_id": 1, "signal_profile": "op10_candidate", "enabled": true},
+    {"name": "OP20", "ip": "192.168.1.76", "port": 502, "unit_id": 1, "signal_profile": "op20_user_provided", "enabled": true},
+    {"name": "OP30", "ip": "192.168.1.41", "port": 502, "unit_id": 1, "signal_profile": "op30_user_provided", "enabled": true},
+    {"name": "OP40", "ip": "192.168.1.46", "port": 502, "unit_id": 1, "signal_profile": "op40_user_provided", "enabled": true},
+    {"name": "OP50A", "ip": "192.168.1.51", "port": 502, "unit_id": 1, "signal_profile": "op50a_user_provided", "enabled": true},
+    {"name": "OP50B", "ip": "192.168.1.51", "port": 502, "unit_id": 1, "signal_profile": "op50b_user_provided", "enabled": true}
+  ]
+}

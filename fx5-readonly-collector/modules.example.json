@@ -1,0 +1,25 @@
+{
+  "poll_interval_seconds": 5.0,
+  "socket_timeout_seconds": 2.0,
+  "output_directory": "data",
+  "signal_profiles": {
+    "op10_candidate": {
+      "mapping_profile": "fx5_dedicated_default",
+      "cycle_time_scale_seconds": null,
+      "signals": {
+        "cycle_start": {"device": "M130", "data_type": "bool", "source_status": "candidate"},
+        "cycle_complete": {"device": "M260", "data_type": "bool", "source_status": "candidate"},
+        "cycle_time": {"device": "D16", "data_type": "uint16", "source_status": "candidate"},
+        "ok_total": {"device": "D400", "data_type": "uint16", "source_status": "candidate"},
+        "ng_total": {"device": "D404", "data_type": "uint16", "source_status": "candidate"}
+      }
+    }
+  },
+  "modules": [
+    {"name": "OP10", "ip": "192.168.1.71", "port": 502, "unit_id": 1, "signal_profile": "op10_candidate", "endpoint_status": "screenshot_and_prior_test_unconfirmed_for_production", "enabled": false},
+    {"name": "OP20", "ip": "192.168.1.76", "port": 502, "unit_id": 1, "signal_profile": null, "endpoint_status": "screenshot_only_unconfirmed", "enabled": false},
+    {"name": "OP30", "ip": "192.168.1.41", "port": 502, "unit_id": 1, "signal_profile": null, "endpoint_status": "screenshot_only_unconfirmed", "enabled": false},
+    {"name": "OP40", "ip": "192.168.1.46", "port": 502, "unit_id": 1, "signal_profile": null, "endpoint_status": "screenshot_only_unconfirmed", "enabled": false},
+    {"name": "OP50", "ip": "192.168.1.51", "port": 502, "unit_id": 1, "signal_profile": null, "endpoint_status": "screenshot_lists_both_OP50A_and_OP50B_unconfirmed", "enabled": false}
+  ]
+}

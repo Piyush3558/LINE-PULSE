@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+data/
+discovery_data/
+*.sqlite3
+*.sqlite3-*
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
