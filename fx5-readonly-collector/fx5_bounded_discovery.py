@@ -128,6 +128,8 @@ def capture(args: argparse.Namespace) -> int:
         output = DEFAULT_OUTPUT / f"{args.module.lower()}_{stamp}.csv"
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
+    if output.exists():
+        raise SystemExit(f"Output already exists; choose a fresh CSV name: {output}")
 
     explain_plan(args.module)
     print(f"Output: {output}")
@@ -139,12 +141,10 @@ def capture(args: argparse.Namespace) -> int:
     deadline = time.monotonic() + args.minutes * 60
     sample_number = 0
     consecutive_errors = 0
-    is_new = not output.exists()
     try:
-        with output.open("a", newline="", encoding="utf-8") as handle:
+        with output.open("x", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=FIELDS)
-            if is_new:
-                writer.writeheader()
+            writer.writeheader()
             while time.monotonic() < deadline:
                 started = time.monotonic()
                 sample_number += 1

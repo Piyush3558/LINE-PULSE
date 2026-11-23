@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import mimetypes
 import signal
@@ -12,6 +13,7 @@ import sys
 import threading
 import time
 from collections import deque
+from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +31,88 @@ import fx5_collector as collector  # noqa: E402
 CONFIG_PATH = COLLECTOR_ROOT / "modules.json"
 STATIC_ROOT = HERE / "static"
 DATA_ROOT = HERE / "data"
+MODULE_CSV_FIELDS = [*collector.RAW_FIELDS, "raw_json"]
+
+
+def save_module_reading(
+    data_root: Path, row: dict[str, Any], raw_values: dict[str, Any]
+) -> Path:
+    """Append one complete dashboard reading to its station's local CSV."""
+    module_name = row["module_name"]
+    if module_name not in {"OP10", "OP20", "OP30", "OP40", "OP50A", "OP50B"}:
+        raise ValueError(f"Unexpected module name: {module_name}")
+    path = data_root / "modules" / f"{module_name.lower()}.csv"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    collector.append_csv(
+        path, MODULE_CSV_FIELDS,
+        {**row, "raw_json": json.dumps(raw_values, sort_keys=True)},
+    )
+    return path
+
+
+def load_saved_readings(
+    raw_csv: Path, discovery_root: Path,
+) -> dict[str, dict[str, Any]]:
+    """Find the newest saved D400/D404 pair per OP10–OP40, without PLC I/O."""
+    names = {"OP10", "OP20", "OP30", "OP40"}
+    latest: dict[str, dict[str, Any]] = {}
+
+    def consider(
+        name: str, ip: str, observed_at: str, ok: str, ng: str, source: str,
+    ) -> None:
+        if name not in names:
+            return
+        try:
+            stamp = datetime.fromisoformat(observed_at)
+            ok_total, ng_total = int(ok), int(ng)
+        except (TypeError, ValueError):
+            return
+        if ok_total < 0 or ng_total < 0:
+            return
+        previous = latest.get(name)
+        if previous is not None and stamp <= datetime.fromisoformat(
+            previous["last_observed_at"]
+        ):
+            return
+        latest[name] = {
+            "module_name": name,
+            "module_ip": ip,
+            "ok_total": ok_total,
+            "ng_total": ng_total,
+            "last_observed_at": observed_at,
+            "saved_source": source,
+        }
+
+    if raw_csv.is_file():
+        with raw_csv.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                consider(
+                    row.get("module_name", ""), row.get("module_ip", ""),
+                    row.get("observed_at_local", ""), row.get("ok_total", ""),
+                    row.get("ng_total", ""), f"dashboard/{raw_csv.name}",
+                )
+
+    if discovery_root.is_dir():
+        for path in sorted(discovery_root.glob("op[1-4]0_*.csv")):
+            samples: dict[tuple[str, str, str], dict[str, str]] = {}
+            with path.open(newline="", encoding="utf-8") as handle:
+                for row in csv.DictReader(handle):
+                    name = row.get("module_name", "")
+                    device = row.get("device")
+                    if name not in names or device not in {"D400", "D404"}:
+                        continue
+                    key = (
+                        name, row.get("module_ip", ""),
+                        row.get("observed_at_local", ""),
+                    )
+                    samples.setdefault(key, {})[device] = row.get("value", "")
+            for (name, ip, observed_at), values in samples.items():
+                if "D400" in values and "D404" in values:
+                    consider(
+                        name, ip, observed_at, values["D400"], values["D404"],
+                        f"discovery/{path.name}",
+                    )
+    return latest
 
 
 class DashboardRuntime:
@@ -42,6 +126,9 @@ class DashboardRuntime:
         self.running = False
         self.started_at: str | None = None
         self.connection_status: dict[str, dict[str, Any]] = {}
+        self.saved_readings = load_saved_readings(
+            DATA_ROOT / "raw_samples.csv", COLLECTOR_ROOT / "discovery_data"
+        )
         self.latest: dict[str, dict[str, Any]] = {
             module["name"]: {
                 "module_name": module["name"],
@@ -58,6 +145,10 @@ class DashboardRuntime:
             }
             for module in self.modules
         }
+        for name, saved in self.saved_readings.items():
+            if name in self.latest:
+                self.latest[name].update(saved)
+                self.latest[name]["status"] = "saved"
         self.recent_events: deque[dict[str, Any]] = deque(maxlen=80)
         self.successful_samples = 0
         self.error_count = 0
@@ -99,8 +190,12 @@ class DashboardRuntime:
 
     def start(self) -> tuple[bool, str]:
         self.check_connections()
-        if not self.all_plcs_online():
-            return False, "All five PLC endpoints must be online before collection starts."
+        with self.lock:
+            any_online = any(
+                item["online"] for item in self.connection_status.values()
+            )
+        if not any_online:
+            return False, "No PLC endpoint is online. Check Ethernet and try again."
         with self.lock:
             if self.running:
                 return True, "Collection is already running."
@@ -113,7 +208,7 @@ class DashboardRuntime:
                 daemon=True,
             )
             self.worker.start()
-        return True, "Read-only collection started."
+        return True, "Read-only collection started. Each module saves to its own CSV."
 
     def stop(self) -> str:
         self.stop_event.set()
@@ -189,6 +284,7 @@ class DashboardRuntime:
                         sample_id = collector.store_raw(
                             database, raw_csv, row, values
                         )
+                        save_module_reading(DATA_ROOT, row, values)
                         collector.store_protocol_frames(
                             database, sample_id, module["name"], frames
                         )
@@ -213,6 +309,7 @@ class DashboardRuntime:
                             self.latest[module["name"]] = {
                                 **row,
                                 "status": "live",
+                                "saved_source": None,
                                 "last_observed_at": observed_at_local,
                                 "last_error": None,
                             }
@@ -242,6 +339,12 @@ class DashboardRuntime:
         with self.lock:
             connections = list(self.connection_status.values())
             online_count = sum(1 for item in connections if item["online"])
+            modules = []
+            for module in self.latest.values():
+                visible = dict(module)
+                if not self.running and visible["last_observed_at"]:
+                    visible["status"] = "saved"
+                modules.append(visible)
             return {
                 "running": self.running,
                 "started_at": self.started_at,
@@ -250,7 +353,7 @@ class DashboardRuntime:
                 "all_online": bool(connections)
                 and online_count == len(self._unique_endpoints()),
                 "connections": connections,
-                "modules": list(self.latest.values()),
+                "modules": modules,
                 "events": list(self.recent_events),
                 "successful_samples": self.successful_samples,
                 "error_count": self.error_count,

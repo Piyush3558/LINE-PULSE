@@ -74,6 +74,9 @@
     .live { background: #e6f5ec; color: var(--green); }
     .waiting { background: #edf0ee; color: #6a7771; }
     .degraded { background: #fbe8e5; color: var(--red); }
+    .saved { background: #fff1d9; color: #865615; }
+    .archive-banner { margin: 0 0 18px; padding: 13px 15px; border: 1px solid #e8d5a6; border-radius: 10px; background: #fff8e8; color: #684a15; font-size: 14px; line-height: 1.45; }
+    .archive-banner[hidden] { display: none; }
     .machine-body { padding: 15px 16px 17px; }
     .signal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 13px; }
     .signal { padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
@@ -132,11 +135,12 @@
       <section class="metrics">
         <div class="metric"><div class="metric-label">PLC endpoints online</div><div class="metric-value" id="onlineMetric">0 / 5</div><div class="metric-foot">TCP 502 connection check</div></div>
         <div class="metric"><div class="metric-label">Collection state</div><div class="metric-value" id="runMetric">Stopped</div><div class="metric-foot" id="runFoot">Waiting for connection</div></div>
-        <div class="metric"><div class="metric-label">Saved samples</div><div class="metric-value" id="sampleMetric">0</div><div class="metric-foot">Stored on this dashboard run</div></div>
+        <div class="metric"><div class="metric-label">This session's samples</div><div class="metric-value" id="sampleMetric">0</div><div class="metric-foot">Saved history appears in the operation cards</div></div>
         <div class="metric"><div class="metric-label">Read errors</div><div class="metric-value" id="errorMetric">0</div><div class="metric-foot">Collection continues after failures</div></div>
       </section>
 
-      <div class="section-head"><h2>Operations</h2><div class="section-note">PLC totals are cumulative · unmapped fields show —</div></div>
+      <div class="archive-banner" id="archiveBanner" hidden>Saved readings are historical PLC snapshots, not live or today's production. Check each card's date before using its totals.</div>
+      <div class="section-head"><h2>Operations</h2><div class="section-note">SAVED = historical · LIVE = current collection · PLC totals are cumulative</div></div>
       <section class="machine-grid" id="machineGrid"></section>
 
       <div class="section-head"><h2>Evidence</h2><div class="section-note">Derived events remain separate from raw PLC values</div></div>
@@ -160,6 +164,7 @@
     const display = (value) => value === null || value === undefined ? '—' : value;
     const boolText = (value) => value === null || value === undefined ? 'WAIT' : value ? 'ON' : 'OFF';
     const timeText = (iso) => iso ? new Date(iso).toLocaleTimeString() : 'No sample yet';
+    const dateTimeText = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'medium' }) : 'No sample yet';
 
     function notify(message, error = false) {
       const node = $('notice');
@@ -175,12 +180,13 @@
       $('onlineMetric').textContent = `${state.plcs_online} / ${state.plcs_total}`;
       $('runMetric').textContent = state.running ? 'Recording' : 'Stopped';
       $('runMetric').style.color = state.running ? 'var(--green)' : 'var(--ink)';
-      $('runFoot').textContent = state.running ? `Every ${state.poll_interval_seconds}s · ${state.started_at ? timeText(state.started_at) : ''}` : state.all_online ? 'Ready to start' : 'Waiting for all PLCs';
+      $('runFoot').textContent = state.running ? `Every ${state.poll_interval_seconds}s · ${state.started_at ? timeText(state.started_at) : ''}` : state.plcs_online > 0 ? 'Ready to start' : 'Use Check connection for live collection';
       $('sampleMetric').textContent = state.successful_samples.toLocaleString();
       $('errorMetric').textContent = state.error_count.toLocaleString();
-      $('startBtn').disabled = !state.all_online || state.running;
+      $('startBtn').disabled = state.plcs_online === 0 || state.running;
       $('stopBtn').disabled = !state.running;
-      $('startBtn').style.display = state.all_online ? 'inline-block' : 'none';
+      $('startBtn').style.display = state.plcs_online > 0 ? 'inline-block' : 'none';
+      $('archiveBanner').hidden = !state.modules.some(m => m.status === 'saved');
 
       $('machineGrid').innerHTML = state.modules.map(m => {
         const status = m.status || 'waiting';
@@ -205,7 +211,8 @@
               <div class="value"><label>${op50 ? 'NG total · unmapped' : 'NG total · D404'}</label><b>${display(m.ng_total)}</b></div>
             </div>
             <div class="last-seen">${esc(counterNote)}</div>
-            <div class="last-seen">Last sample: ${esc(timeText(m.last_observed_at))}</div>
+            <div class="last-seen">Last sample: ${esc(dateTimeText(m.last_observed_at))}</div>
+            ${m.saved_source ? `<div class="last-seen">Saved source: ${esc(m.saved_source)}</div>` : ''}
             ${m.last_error ? `<div class="error-line">${esc(m.last_error)}</div>` : ''}
           </div>
         </article>`;
@@ -232,7 +239,7 @@
       try {
         const state = await api('/api/check', 'POST');
         render(state);
-        notify(state.all_online ? 'All PLC endpoints are online. Start collection is ready.' : 'One or more PLC endpoints are offline.', !state.all_online);
+        notify(state.plcs_online > 0 ? `${state.plcs_online} PLC endpoint(s) online. Collection can start; unavailable modules will be logged.` : 'No PLC endpoint is online.', state.plcs_online === 0);
       } catch (error) { notify(error.message, true); }
       finally { $('checkBtn').disabled = false; }
     }
@@ -246,9 +253,7 @@
       catch (error) { notify(error.message, true); }
     });
     refresh();
-    checkConnections();
     setInterval(refresh, 1000);
-    setInterval(() => { if (lastState && !lastState.running && !lastState.all_online) checkConnections(); }, 10000);
   </script>
 </body>
 </html>

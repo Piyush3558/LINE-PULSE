@@ -38,6 +38,46 @@ Analyze the CSV path printed by the capture command:
 python3 fx5_bounded_discovery.py analyze discovery_data/op40_YYYYMMDD_HHMMSS.csv
 ```
 
+### Stopped-versus-running OP50 counter check
+
+Do this only when an operator confirms the machine state. Stop dashboard
+collection first, keep the PLC Ethernet connection active, and do not run
+another collector simultaneously. Capture OP50 once with no parts being
+processed, then again while several known OK and NG results occur. OP50A and
+OP50B share one physical PLC, so run one OP50 capture per phase. Both captures
+use the same small address plan; this is not a whole-PLC memory dump.
+
+```bash
+python3 fx5_bounded_discovery.py capture --module OP50 --minutes 1 --interval 10 --output discovery_data/op50_stopped_20261117.csv --confirm-read-only
+python3 fx5_bounded_discovery.py capture --module OP50 --minutes 15 --interval 10 --output discovery_data/op50_running_20261117.csv --confirm-read-only
+```
+
+Write down the HMI OK and NG totals at the end of the stopped capture and at
+the end of the running capture, with the times. If the HMI resets counters or
+changes shift between captures, start a fresh pair instead of treating a
+negative delta as a result. The capture refuses an existing output filename,
+so choose new names for another attempt.
+
+Compare offline. The tool asks for the four actual HMI readings:
+
+```bash
+python3 fx5_compare_captures.py discovery_data/op50_stopped_20261117.csv discovery_data/op50_running_20261117.csv --output discovery_data/op50_changed_20261117.csv --prompt-hmi
+```
+
+The comparison CSV contains only addresses that differ across phases or
+change during the running capture. It distinguishes a sampled zero from a
+missing address and flags HMI-matching candidates. A matching delta alone is
+not proof: repeat with another known OK and another known NG result. If no
+counter matches, obtain the HMI/GX Works3 device cross-reference; the true
+counter may be outside these sampled ranges or encoded across two registers.
+
+QR-to-part tracking needs separate evidence of the scanner's QR value, a
+station arrival/active signal, and the final OP50 disposition for that same
+QR. Station aggregate totals cannot identify which part was OK. Keep QR and
+final-part fields unmapped in the dashboard until those sources are verified.
+The implementation prerequisites and intended dashboard behavior are recorded
+in `../PART_TRACEABILITY_PLAN.md`.
+
 Changed devices are candidates only. Confirm them against known HMI cycle
 starts, completions, and OK/NG results before assigning meanings.
 

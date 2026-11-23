@@ -32,7 +32,7 @@ py -3 server.py
 ```
 
 Open **http://127.0.0.1:8765** on that PC. Click **Check connection**, then
-**Start collection** once all five configured PLC endpoints are reachable.
+**Start collection** once at least one configured PLC endpoint is reachable.
 Stop using the dashboard before pressing `Ctrl+C` in the terminal.
 
 ### Ethernet, dongle, and AnyDesk
@@ -102,6 +102,8 @@ uses its configured output directory, normally `data/` relative to the working d
 
 - `fx5_data.sqlite3`: samples, events, errors, and protocol evidence.
 - `raw_samples.csv`: successful snapshots.
+- `modules/op10.csv` through `modules/op50b.csv`: successful dashboard
+  snapshots in separate station files, including timestamps and raw values.
 - `events.csv`: observed cycle edges and counter changes.
 - `collection_errors.csv`: connection and protocol failures.
 
