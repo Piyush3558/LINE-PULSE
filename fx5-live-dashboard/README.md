@@ -23,6 +23,11 @@ Open `http://127.0.0.1:8765` in Chrome. Press **Start collection** after the
 manual connection check shows at least one endpoint online. Stop safely with the dashboard
 button before closing the server with `Ctrl+C`.
 
+On Windows, use the project-root `check_line_pulse.bat` and
+`start_line_pulse.bat`. The latter runs an offline configuration/write check
+before starting the same dashboard. See the project-root `README.md` for the
+machine Ethernet, Wi-Fi and remote-access steps.
+
 Data is stored separately under this project's `data/` directory:
 
 - `fx5_data.sqlite3`

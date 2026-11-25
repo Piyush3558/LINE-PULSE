@@ -23,29 +23,60 @@ connecting: it contains the current station configuration with stations enabled.
 
 ## Run on Windows
 
-Install Python, then copy or extract the project to `C:\Line-Pulse`.
-Open Command Prompt and run:
+Install Python 3.10 or newer, then copy or extract the **whole** `Line-Pulse`
+folder to a writable location such as `%USERPROFILE%\Line-Pulse`. Keep
+`fx5-live-dashboard` and `fx5-readonly-collector` together. Do not copy the
+Linux `.venv` folder. The dashboard needs no pip packages or PostgreSQL.
+
+On the Windows PC, double-click `check_line_pulse.bat` before visiting the
+machine. It checks the code, configuration and local data-folder write access,
+then runs offline tests. It does not contact a PLC. Double-click
+`start_line_pulse.bat` to launch the dashboard. You can also use Command Prompt:
 
 ```bat
-cd /d C:\Line-Pulse\fx5-live-dashboard
-py -3 server.py
+cd /d "%USERPROFILE%\Line-Pulse"
+py -3 windows_preflight.py
+py -3 fx5-live-dashboard\server.py
 ```
 
 Open **http://127.0.0.1:8765** on that PC. Click **Check connection**, then
 **Start collection** once at least one configured PLC endpoint is reachable.
-Stop using the dashboard before pressing `Ctrl+C` in the terminal.
+The dashboard records a successful sample about every five seconds. Leave the
+terminal open and prevent the PC from sleeping. Stop using the dashboard before
+pressing `Ctrl+C` in the terminal. If `py` is unavailable, use `python` in the
+Command Prompt commands.
 
 ### Ethernet, dongle, and AnyDesk
 
-1. Connect Ethernet to the machine network that reaches all PLCs.
-2. Assign an unused Ethernet IPv4 address in the machine subnet with the subnet mask confirmed by the network team. For a directly connected machine subnet, leave its gateway and DNS blank.
-3. Use the dongle for internet access, on a different subnet from the machine network. Leave network bridging and Internet Connection Sharing off.
-4. Connect through AnyDesk and view the Windows PC's browser at `http://127.0.0.1:8765`.
-5. Keep the PC awake and the server terminal running while collecting.
+1. Connect Ethernet to the machine network that reaches all five PLC IPs below.
+2. In Windows **Settings > Network & internet > Ethernet > IP assignment > Edit**,
+   set Manual IPv4 to an unused address approved for that machine network, with
+   the confirmed subnet mask. For a directly connected PLC subnet, leave its
+   gateway and DNS blank. The previous laptop used `192.168.1.120/24`; do not
+   reuse it until you confirm it is free on the new connection.
+3. Connect Wi-Fi or a mobile hotspot for internet and remote access. Keep it on
+   a different subnet from Ethernet; leave network bridging and Internet
+   Connection Sharing off. The PLC reads use Ethernet. Internet access alone
+   cannot reach the PLCs.
+4. In Command Prompt run `ipconfig` to inspect both adapters. Run
+   `ping 192.168.1.51` and `powershell -Command "Test-NetConnection 192.168.1.51 -Port 502"`
+   to check OP50. Repeat the TCP check for other PLC IPs if needed. A ping reply
+   alone does not prove the MODBUS port is open.
+5. Start Line Pulse locally. In its browser page, click **Check connection**;
+   check which PLCs respond before clicking **Start collection**. Online modules
+   save readings even if another endpoint is offline; failures go into
+   `collection_errors.csv`.
+6. Install and configure AnyDesk (or your approved remote desktop tool) on the
+   Windows PC. From your own computer, connect to that PC, then view its local
+   browser at `http://127.0.0.1:8765`. Configure unattended access on that PC
+   only if you need sessions without somebody there to accept them.
+7. After a minute, confirm new timestamped rows in
+   `fx5-live-dashboard\data\modules\op10.csv` (or the relevant module file).
+   Copy the **data** folder to a separate backup location after the session.
 
 The dashboard listens on localhost by default. AnyDesk viewing does not require
-exposing the dashboard HTTP port to the internet. Windows operation still needs
-verification on the target PC.
+exposing the dashboard HTTP port to the internet. Windows operation and PLC
+connectivity still need verification on the target PC.
 
 ## Run on Linux
 
