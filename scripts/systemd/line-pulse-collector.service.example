@@ -1,0 +1,14 @@
+[Unit]
+Description=Line Pulse read-only PLC collector
+After=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/opt/line-pulse
+ExecStart=/usr/bin/node --env-file=.env --import tsx backend/worker.ts
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

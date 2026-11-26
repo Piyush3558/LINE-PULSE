@@ -9,5 +9,9 @@ discovery_data/
 .env
 .env.*
 !.env.example
+line-pulse-db-ca.pem
 .DS_Store
 Thumbs.db
+
+node_modules/
+dist/

@@ -1,3 +1,4 @@
+-- Legacy Python schema retained for rollback. New installations use database/migrations/.
 -- Line Pulse local PostgreSQL schema. Run as the owner of database line_pulse.
 -- These tables preserve PLC observations; a counter is not a per-part result.
 

@@ -1,0 +1,25 @@
+{
+  "name": "line-pulse",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --import tsx scripts/dev.mjs",
+    "build": "tsc --noEmit && npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "collector": "npm run collector --workspace backend",
+    "line-pulse": "npm run line-pulse --workspace backend --",
+    "setup:db": "npm run setup:db --workspace backend",
+    "test": "npm test --workspace backend",
+    "start:local": "npm run start:local --workspace backend"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

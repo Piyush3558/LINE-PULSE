@@ -1,0 +1,31 @@
+{
+  "name": "@line-pulse/backend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15 <25"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=../.env start.ts --watch",
+    "start": "node --env-file-if-exists=../.env --import tsx server.ts",
+    "collector": "node --env-file-if-exists=../.env --import tsx worker.ts",
+    "start:local": "node --env-file-if-exists=../.env start.ts",
+    "line-pulse": "node --env-file-if-exists=../.env --import tsx cli.ts",
+    "setup:db": "node --import tsx setup-db.ts",
+    "test": "node --import tsx --test \"*.test.ts\""
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/static": "^10.1.12",
+    "@fastify/swagger": "^9.9.5",
+    "@sinclair/typebox": "^0.34.52",
+    "csv-parse": "^7.0.3",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "@types/pg": "^8.23.1"
+  }
+}
